@@ -139,29 +139,25 @@ SC.Playlist.prototype = {
     this.init(props);
     this.player.switchPlaylist(this.id);
   },
-  generateTracksUrl : function(baseUrl) { // generates the API url based on properties of the playlist
-    var format = "js";
-    if(!baseUrl) { // if no baseUrl then use json
-      var format = "js";
-      var baseUrl = "http://api.soundcloud.com/";
-    }
+  generateTracksUrl : function() { // generates the API url based on properties of the playlist
+    var baseUrl = "tracks?";
+    
     var pl = this.properties.playlist;
     if(pl.smart) { // check for all smart playlist params
       if(pl.smart_filter.user_favorites) { // user favs pl
-        baseUrl += "users/" + pl.smart_filter.user_favorites + "/favorites." + format + "?filter=streamable"
+        baseUrl += "users/" + pl.smart_filter.user_favorites + "/favorites" + "?filter=streamable"
       } else if(pl.smart_filter.artist) { // artist pl
         // get the sc user_id from the uri
         var tmp = pl.smart_filter.artist.split("/");
         var userId = tmp[tmp.length-1];
-        baseUrl += "users/" + userId + "/tracks." + format + "?filter=streamable"
-      } else { // dynamic smart pl
-        baseUrl += "tracks." + format + "?filter=streamable";
-      }
+        baseUrl += "artist=" + userId;
+      } 
+	  
       if(pl.smart_filter.order == "hotness" && !pl.smart_filter.user_favorites) { // prevent favs hotness sorting API bug
         var hotness_from = (pl.smart_filter.hotness_from ? pl.smart_filter.hotness_from : SC.dateLastMonth());
-        baseUrl = baseUrl + "&order=hotness&created_at[from]=" + hotness_from; //removed sort by hotness here
+        baseUrl += "&order=hotness&created_at[from]=" + hotness_from; //removed sort by hotness here
       } else { // default to sort by latest
-        baseUrl = baseUrl + "&order=created_at";
+        baseUrl += "&order=created_at";
       }
       if(pl.smart_filter.genres) {
         baseUrl = baseUrl + "&genres=" + pl.smart_filter.genres;
@@ -176,13 +172,11 @@ SC.Playlist.prototype = {
         baseUrl += "&bpm[to]=" + pl.smart_filter.bpm_to;
       }
     } else { // this is normal playlist
-      baseUrl = baseUrl + "tracks." + format + "?filter=streamable&ids=" + this.properties.playlist.tracks;
+      baseUrl += "&ids=" + this.properties.playlist.tracks;
     }
-    if(format == "js") {
-      baseUrl += "&callback=?"; // add JSONP callback param      
-    }
+
     // limit to tracks under 20 mins long
-    baseUrl += "&duration[to]=1200000&limit=" + this.limit + "&consumer_key=" + CONSUMER_KEY; // increase limit to 100
+    baseUrl += "&duration[to]=1200000&limit=" + this.limit; // increase limit to 100
     return baseUrl;
   },
   load : function() {
@@ -192,14 +186,7 @@ SC.Playlist.prototype = {
       self.loading = true;
       self.tracks = [];
       $.getJSON(this.generateTracksUrl() + "&offset=" + this.offset, function(data) {
-        if(data.response && parseInt(data.response) == 408) { // if google app engine timeout, then fallback to use the sc api directly, bypassing the caching layer
-          console.log('app engine timeout, sc api fallback')
-          $.getJSON(self.generateTracksUrl("http://api.soundcloud.com/") + "&offset=" + self.offset, function(dataNonCached) {
-            self.processTrackData(dataNonCached);
-          });
-        } else {
-          self.processTrackData(data);
-        }
+        self.processTrackData(data);
       });
     }
   },

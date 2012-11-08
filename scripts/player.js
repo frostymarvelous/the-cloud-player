@@ -20,7 +20,6 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-var CONSUMER_KEY = "UdbhZcCSuxR9AxcfR3uvgg";
 
 SC.Player = SC.Class();
 SC.Player.prototype = {
@@ -421,11 +420,12 @@ SC.Player.prototype = {
     
     this.playlists = {};
 
-    // load hot tracks if not logged in user
-    if($("body").hasClass("logged-in")) {
+    
+	
+    //if($("body").hasClass("logged-in")) {
 
-      // load playlists for user
-      $.getJSON("/playlists",function(playlists) {
+      // load playlists
+      $.getJSON("playlists",function(playlists) {
         $.each(playlists,function() {
           self.playlists[this.playlist.id] = new SC.Playlist(this, self);
         });
@@ -442,11 +442,13 @@ SC.Player.prototype = {
           if(playlists.length > 0) { // switch to first playlist
             self.switchPlaylist(playlists[0].playlist.id);
           }          
-        }
-                        
+        }                  
       });
-    } else { // not logged in, then load a few standard playlists without persisting
-      self.playlists['latest'] = new SC.Playlist({
+	  
+	  self.switchPlaylist("hottest");
+	  
+/*    } else { // not logged in, then load a few standard playlists without persisting
+       self.playlists['latest'] = new SC.Playlist({
         is_owner: true,
         playlist: {
           id : "latest",
@@ -547,11 +549,11 @@ SC.Player.prototype = {
       if(location.href.split(".").length > 1 && !$.cookie('viewed_intro') == '1'){
         $.cookie('viewed_intro', '1', { expires: 1 });
         $("#about-box").fadeIn();
-      }
+      } 
 
-      self.switchPlaylist("latest");
+      
 
-    }
+    }*/
     
     $("#playlists").sortable({
       placeholder : "droppable-placeholder",
@@ -581,7 +583,7 @@ SC.Player.prototype = {
     var self = this;
     this.audioTracks[id] = soundManager.createSound({
       id: id,
-      url: track.stream_url + "?consumer_key=" + CONSUMER_KEY,
+      url: track.stream_url,
       volume : this.volume,
       whileloading : SC.throttle(200,function() {
           self.loading.css('width',(self.audio.bytesLoaded/self.audio.bytesTotal)*100+"%");
@@ -613,7 +615,7 @@ SC.Player.prototype = {
 
     $("#artist")
       .hide()
-      .html("<a href='#' class='artist-link'>" + track.user.username + "</a> · <span>" + track.title + "</span>" + " <a href='" + track.permalink_url + "' target='_blank'>»</a>" + (track.purchase_url ? " <a href='" + track.purchase_url + "' target='_blank'>Buy »</a>" : ""))
+      .html("<a href='#' class='artist-link'>" + track.user.username + "</a> · <span>" + track.title + "</span>" + " &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <a href='" + track.permalink_url + "' target='_blank'>&laquo;<small>Download</small>&raquo;</a>" )
       .find("a.artist-link")
         .click(function(ev) {
           self.removePlaylist("artist");
@@ -661,7 +663,7 @@ SC.Player.prototype = {
       })      
     }
     
-    if(track.artwork_url && !track.artwork_url.match(/default/)) {
+    if(track.artwork_url) {
       this.loadArtwork(track);
     } else {
       this.hideArtworkPane();
@@ -685,7 +687,7 @@ SC.Player.prototype = {
   },
   loadArtistInfo: function(uri) {
     var self = this;
-    $.getJSON(uri + ".js?callback=?" + "&consumer_key=" + CONSUMER_KEY,function(user) {
+    $.getJSON(uri,function(user) {
       if(!user.city) {
         user.city = "";
       };
@@ -697,7 +699,7 @@ SC.Player.prototype = {
         .find("h3").html(user.username + " <span>" + user.city + ", " + user.country + "</span>").end()
         .find("img").removeClass("loaded").attr("src",user.avatar_url).end()
         .find("p:first").html(user.description).end()
-        .find("p:last").html("<a href='" + user.permalink_url + "' target='_blank'>Check this artist on SoundCloud »</a>").end()
+        .find("p:last").html("<a href='" + user.permalink_url + "' target='_blank'>Check this artist on BiGxGh »</a>").end()
       self.showArtistPane();
     });
   },
@@ -774,6 +776,7 @@ SC.Player.prototype = {
 			$("tbody").find("tr:first").dblclick();
 		}
 	}
+	
   },
   stop: function() {
     if(this.audio) {
@@ -785,7 +788,7 @@ SC.Player.prototype = {
 };
 
 soundManager.flashVersion = 9;
-soundManager.url = '/scripts/.';
+soundManager.url = 'swf/';
 soundManager.useConsole = true;
 soundManager.consoleOnly = true;
 soundManager.debugMode = false; // disable debug mode
@@ -796,4 +799,5 @@ soundManager.onload = function() {
   // soundManager is ready to use (create sounds and so on)
   // init the player app
   window.p = new SC.Player();
+  
 }
